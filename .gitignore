@@ -1,0 +1,23 @@
+# Large datasets - track via LFS instead of ignoring
+# But if you want to exclude completely, uncomment these:
+# dataset/chicago_crime_data.csv
+# dataset/clean_crime_data.csv
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
