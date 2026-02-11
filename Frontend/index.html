@@ -2,301 +2,884 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Safe-Route</title>
+    <title>Safe-Route - Chicago</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     
+    <!-- Mapbox -->
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
     <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.min.js"></script>
     <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.css" type="text/css">
     
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <style>
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+        
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100vh;
+        }
         
         /* Sidebar Panel */
         .overlay {
-            position: absolute; top: 20px; left: 20px;
-            background: white; padding: 20px; width: 360px;
-            border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); z-index: 10;
-            max-height: 90vh; overflow-y: auto;
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: white;
+            padding: 25px;
+            width: 380px;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(255,255,255,0.2);
         }
-        h2 { margin: 0 0 10px 0; color: #333; font-size: 20px; display: flex; align-items: center; gap: 10px; }
+        
+        h2 {
+            margin: 0 0 15px 0;
+            color: #1a2639;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 15px;
+        }
+        
+        h2 i {
+            color: #00BFFF;
+        }
+        
+        /* Status Badge */
+        #status {
+            text-align: center;
+            font-size: 13px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin: 15px 0;
+            color: #6c757d;
+            font-weight: 500;
+        }
         
         /* Analytics Card */
         .analytics-card {
-            background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px;
-            padding: 10px; margin-top: 10px; display: none;
+            background: linear-gradient(145deg, #ffffff, #f8f9fa);
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 15px;
+            display: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
-        .stat-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 13px; }
-        .stat-label { font-weight: bold; color: #555; }
-        .stat-val-red { color: #dc3545; font-weight: bold; }
-        .stat-val-blue { color: #007bff; font-weight: bold; }
-        .highlight { background: #e8f5e9; color: #198754; padding: 5px; text-align: center; border-radius: 4px; margin-top: 5px; font-weight: bold; font-size: 12px; }
-
-        /* Simulation Controls (Hidden initially) */
-        .sim-controls {
-            margin-top: 15px; padding: 10px; border-top: 1px solid #eee;
-            display: none; background: #fff3cd; border-radius: 5px;
-        }
-        .sim-btn {
-            width: 100%; margin-bottom: 8px; padding: 10px; border: none; border-radius: 5px;
-            cursor: pointer; font-size: 13px; font-weight: bold; color: white;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-        }
-        .btn-walk { background: #28a745; }
-        .btn-deviate { background: #ffc107; color: black; }
-        .btn-stop { background: #dc3545; }
         
-        /* Standard Buttons */
-        .btn { width: 100%; padding: 10px; margin-top: 10px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
-        .btn-reset { background: #6c757d; }
-        .btn-guardian { background: #6610f2; display: none; }
-
-        /* SOS Alert Overlay */
-        #sos-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(220, 53, 69, 0.95); z-index: 9999;
-            display: none; flex-direction: column; align-items: center; justify-content: center;
-            color: white; text-align: center; animation: flash 1s infinite;
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 8px;
+            font-size: 14px;
+            border-radius: 6px;
         }
-        @keyframes flash { 0% {opacity: 1;} 50% {opacity: 0.8;} 100% {opacity: 1;} }
+        
+        .stat-row:hover {
+            background: rgba(0,0,0,0.02);
+        }
+        
+        .stat-label {
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .stat-val-red {
+            color: #dc3545;
+            font-weight: 700;
+        }
+        
+        .stat-val-blue {
+            color: #00BFFF;
+            font-weight: 700;
+        }
+        
+        .highlight {
+            background: linear-gradient(145deg, #d4edda, #c3e6cb);
+            color: #155724;
+            padding: 12px;
+            text-align: center;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-weight: 700;
+            font-size: 14px;
+            border: 1px solid #c3e6cb;
+        }
+
+        /* Guardian Mode Button */
+        .btn-guardian {
+            background: linear-gradient(145deg, #6610f2, #520dc2);
+            color: white;
+            padding: 14px;
+            margin-top: 15px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 15px;
+            display: none;
+            width: 100%;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 12px rgba(102, 16, 242, 0.3);
+        }
+        
+        .btn-guardian:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 16, 242, 0.4);
+        }
+
+        /* Simulation Controls */
+        .sim-controls {
+            margin-top: 20px;
+            padding: 20px;
+            border-top: 1px solid #e9ecef;
+            display: none;
+            background: #fff9e6;
+            border-radius: 12px;
+        }
+        
+        .sim-controls h4 {
+            margin: 0 0 15px 0;
+            color: #856404;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .sim-btn {
+            width: 100%;
+            margin-bottom: 12px;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.2s;
+        }
+        
+        .sim-btn:hover {
+            transform: translateY(-2px);
+            opacity: 0.95;
+        }
+        
+        .btn-walk {
+            background: linear-gradient(145deg, #28a745, #218838);
+        }
+        
+        .btn-deviate {
+            background: linear-gradient(145deg, #ffc107, #e0a800);
+            color: #212529;
+        }
+        
+        .btn-stop {
+            background: linear-gradient(145deg, #dc3545, #c82333);
+        }
+        
+        .btn-reset {
+            background: linear-gradient(145deg, #6c757d, #5a6268);
+            color: white;
+            padding: 14px;
+            margin-top: 15px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            width: 100%;
+            transition: all 0.2s;
+        }
+        
+        .btn-reset:hover {
+            background: linear-gradient(145deg, #5a6268, #4e555b);
+            transform: translateY(-2px);
+        }
+
+        /* SOS Overlay */
+        #sos-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(220, 53, 69, 0.98);
+            z-index: 10000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-align: center;
+            animation: pulse 2s infinite;
+            backdrop-filter: blur(8px);
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.98; }
+            100% { opacity: 1; }
+        }
         
         .sos-box {
-            background: white; color: #dc3545; padding: 30px; border-radius: 15px;
-            box-shadow: 0 0 50px rgba(0,0,0,0.5); max-width: 400px;
+            background: white;
+            color: #dc3545;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 450px;
+            width: 90%;
+            animation: slideIn 0.5s ease;
         }
-        .user-marker { width: 20px; height: 20px; background: #00BFFF; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.5); transition: all 0.5s ease; }
         
-        /* Search Fix */
-        .mapboxgl-ctrl-geocoder { min-width: 100%; z-index: 9999 !important; box-shadow: none; border: 1px solid #ddd; }
-        .suggestions-wrapper, .suggestions { z-index: 10000 !important; }
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .sos-box h1 {
+            margin: 20px 0;
+            font-size: 28px;
+        }
+        
+        .sos-box button {
+            background: #6c757d;
+            color: white;
+            padding: 14px 30px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 700;
+            margin-top: 20px;
+            transition: all 0.2s;
+        }
+        
+        .sos-box button:hover {
+            background: #5a6268;
+            transform: scale(1.05);
+        }
+        
+        /* User Marker */
+        .user-marker {
+            width: 24px;
+            height: 24px;
+            background: #00BFFF;
+            border: 4px solid white;
+            border-radius: 50%;
+            box-shadow: 0 0 0 4px rgba(0,191,255,0.2);
+            transition: all 0.3s ease;
+            animation: pulseMarker 2s infinite;
+        }
+        
+        @keyframes pulseMarker {
+            0% { box-shadow: 0 0 0 0 rgba(0,191,255,0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(0,191,255,0); }
+            100% { box-shadow: 0 0 0 0 rgba(0,191,255,0); }
+        }
+        
+        /* Geocoder Fixes */
+        .mapboxgl-ctrl-geocoder {
+            min-width: 100%;
+            z-index: 1001 !important;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            transition: border-color 0.2s;
+        }
+        
+        .mapboxgl-ctrl-geocoder:focus-within {
+            border-color: #00BFFF;
+        }
+        
+        .suggestions-wrapper,
+        .suggestions {
+            z-index: 1002 !important;
+        }
+        
+        /* Loading Spinner */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #00BFFF;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .overlay {
+                width: calc(100% - 40px);
+                left: 20px;
+                right: 20px;
+                max-height: 60vh;
+            }
+            
+            .sos-box {
+                width: 95%;
+                padding: 25px;
+            }
+        }
+        
+        /* Custom Scrollbar */
+        .overlay::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .overlay::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .overlay::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 10px;
+        }
+        
+        .overlay::-webkit-scrollbar-thumb:hover {
+            background: #a1a1a1;
+        }
     </style>
 </head>
 <body>
 
+    <!-- SOS Overlay -->
     <div id="sos-overlay">
         <div class="sos-box">
-            <i class="fas fa-exclamation-triangle fa-3x"></i>
+            <i class="fas fa-exclamation-triangle fa-4x" style="color: #dc3545;"></i>
             <h1>SOS TRIGGERED</h1>
-            <p style="font-size:18px;"><strong>Reason:</strong> <span id="sos-reason">Unknown</span></p>
-            <hr>
-            <p><i class="fab fa-whatsapp"></i> Sharing Live Location...</p>
-            <button class="btn" style="background:#6c757d; margin-top:20px;" onclick="cancelSOS()">I AM SAFE (Cancel)</button>
+            <p style="font-size: 18px; margin-bottom: 15px;">
+                <strong>Reason:</strong> <span id="sos-reason">Unknown</span>
+            </p>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin: 20px 0;">
+                <i class="fab fa-whatsapp" style="color: #25D366; font-size: 24px;"></i>
+                <p style="color: #212529; margin-top: 10px;">Sharing Live Location with Emergency Contacts...</p>
+            </div>
+            <button onclick="cancelSOS()">
+                <i class="fas fa-check-circle"></i> I AM SAFE (Cancel)
+            </button>
         </div>
     </div>
 
+    <!-- Main Sidebar -->
     <div class="overlay">
-        <h2>🛡️ Safe-Route</h2>
+        <h2>
+            <i class="fas fa-shield-alt"></i>
+            Safe-Route Chicago
+        </h2>
         
-        <div id="geocoder-start" style="margin-bottom:10px;"></div>
-        <div id="geocoder-end" style="margin-bottom:10px;"></div>
+        <!-- Search Inputs -->
+        <div id="geocoder-start" style="margin-bottom: 12px;"></div>
+        <div id="geocoder-end" style="margin-bottom: 12px;"></div>
         
-        <div id="status" style="text-align:center; font-size:13px; color:#555;">Enter locations to compare...</div>
+        <!-- Status Display -->
+        <div id="status">
+            <i class="fas fa-map-pin"></i>
+            Enter start and destination to begin
+        </div>
 
+        <!-- Analytics Panel -->
         <div id="analytics" class="analytics-card">
-            <div class="stat-row" style="border-bottom:1px solid #ddd; padding-bottom:5px;">
-                <span>Route</span> <span>Dist</span> <span>Risk</span>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #e9ecef;">
+                <span style="font-weight: 700; color: #495057;">Route Comparison</span>
+                <span style="color: #6c757d; font-size: 12px;">Distance / Risk Score</span>
             </div>
+            
             <div class="stat-row">
-                <span class="stat-label" style="color:red;">🔴 Shortest</span>
-                <span id="dist-red">0 km</span>
+                <span class="stat-label">
+                    <i class="fas fa-circle" style="color: #dc3545; font-size: 10px;"></i>
+                    Shortest Path
+                </span>
+                <span>
+                    <span id="dist-red">0</span> km
+                </span>
                 <span id="score-red" class="stat-val-red">0</span>
             </div>
+            
             <div class="stat-row">
-                <span class="stat-label" style="color:#00BFFF;">🔵 Safe AI</span>
-                <span id="dist-blue">0 km</span>
+                <span class="stat-label">
+                    <i class="fas fa-circle" style="color: #00BFFF; font-size: 10px;"></i>
+                    Safe AI Path
+                </span>
+                <span>
+                    <span id="dist-blue">0</span> km
+                </span>
                 <span id="score-blue" class="stat-val-blue">0</span>
             </div>
-            <div id="safety-verdict" class="highlight">✅ 0% Safer</div>
+            
+            <div id="safety-verdict" class="highlight">
+                <i class="fas fa-check-circle"></i>
+                Ready to analyze routes
+            </div>
         </div>
 
-        <button onclick="activateGuardian()" id="btn-guardian" class="btn btn-guardian">🛡️ Start Guardian Mode</button>
+        <!-- Guardian Mode Button -->
+        <button onclick="activateGuardian()" id="btn-guardian" class="btn-guardian">
+            <i class="fas fa-shield-alt"></i>
+            Start Guardian Mode
+        </button>
         
+        <!-- Simulation Controls -->
         <div id="sim-controls" class="sim-controls">
-            <h4 style="margin:0 0 10px 0; color:#856404;">👮 Simulation Panel</h4>
+            <h4>
+                <i class="fas fa-gamepad"></i>
+                Simulation Panel
+            </h4>
+            
             <button onclick="startWalking()" class="sim-btn btn-walk">
-                <i class="fas fa-walking"></i> Walk Safely
+                <i class="fas fa-walking"></i>
+                Walk Safely (Follow Route)
             </button>
+            
             <button onclick="simulateDeviation()" class="sim-btn btn-deviate">
-                <i class="fas fa-route"></i> Simulate Wrong Turn (Away)
+                <i class="fas fa-exclamation-triangle"></i>
+                Simulate Wrong Turn
             </button>
+            
             <button onclick="simulateStop()" class="sim-btn btn-stop">
-                <i class="fas fa-hand-paper"></i> Simulate Suspicious Stop
+                <i class="fas fa-hand-paper"></i>
+                Simulate Suspicious Stop
             </button>
+            
+            <p style="font-size: 12px; color: #856404; margin: 10px 0 0 0; text-align: center;">
+                <i class="fas fa-info-circle"></i>
+                Test SOS alerts and WhatsApp integration
+            </p>
         </div>
 
-        <button onclick="resetMap()" class="btn btn-reset">Reset Map</button>
+        <!-- Reset Button -->
+        <button onclick="resetMap()" class="btn-reset">
+            <i class="fas fa-redo-alt"></i>
+            Reset Map
+        </button>
+        
+        <!-- Footer Note -->
+        <p style="font-size: 11px; color: #999; text-align: center; margin-top: 20px;">
+            <i class="fas fa-map-marker-alt"></i>
+            Chicago Crime Analysis • AI-Powered Safe Routes
+        </p>
     </div>
 
+    <!-- Map Container -->
     <div id="map"></div>
 
     <script>
-        // PASTE YOUR MAPBOX TOKEN HERE
+        // ==================== CONFIGURATION ====================
+        
+        // Mapbox Token
         mapboxgl.accessToken = 'pk.eyJ1Ijoic2FmZXJvdXRlLXByb2plY3QiLCJhIjoiY21sYzMydXV1MHFpcDNkczloYzJxODBhNyJ9.b1yUira6GPtTvRl8jMgItg';
+        
+        // API Configuration - UPDATE THIS WITH YOUR RENDER URL AFTER DEPLOYMENT
+        const API_BASE_URL = 'http://127.0.0.1:5000';  // Local development
+        // const API_BASE_URL = 'https://safe-route-api.onrender.com';  // Production (uncomment after Render deployment)
 
+        // ==================== MAP INITIALIZATION ====================
+        
         const map = new mapboxgl.Map({
             container: 'map',
             style: 'mapbox://styles/mapbox/dark-v11',
-            center: [-87.6298, 41.8781],
-            zoom: 12
+            center: [-87.6298, 41.8781],  // Chicago
+            zoom: 11
         });
 
-        let startPoint, endPoint, userMarker;
-        let safePathCoords = [];
-        let simulationInterval;
+        // Add navigation controls
+        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
-        // Search Bars
-        const geocoderStart = new MapboxGeocoder({ accessToken: mapboxgl.accessToken, mapboxgl: mapboxgl, placeholder: 'Start Location', marker: false });
+        // ==================== GLOBAL VARIABLES ====================
+        
+        let startPoint = null;
+        let endPoint = null;
+        let userMarker = null;
+        let safePathCoords = [];
+        let simulationInterval = null;
+        let startMarker = null;
+        let endMarker = null;
+
+        // ==================== SEARCH BAR SETUP ====================
+        
+        // Start location geocoder
+        const geocoderStart = new MapboxGeocoder({
+            accessToken: mapboxgl.accessToken,
+            mapboxgl: mapboxgl,
+            placeholder: '🚩 Start Location',
+            marker: false,
+            countries: 'us',
+            proximity: [-87.6298, 41.8781]
+        });
         document.getElementById('geocoder-start').appendChild(geocoderStart.onAdd(map));
         
-        const geocoderEnd = new MapboxGeocoder({ accessToken: mapboxgl.accessToken, mapboxgl: mapboxgl, placeholder: 'Destination', marker: false });
+        // Destination geocoder
+        const geocoderEnd = new MapboxGeocoder({
+            accessToken: mapboxgl.accessToken,
+            mapboxgl: mapboxgl,
+            placeholder: '🏁 Destination',
+            marker: false,
+            countries: 'us',
+            proximity: [-87.6298, 41.8781]
+        });
         document.getElementById('geocoder-end').appendChild(geocoderEnd.onAdd(map));
 
-        geocoderStart.on('result', (e) => { startPoint = e.result.geometry.coordinates; checkAndRoute(); });
-        geocoderEnd.on('result', (e) => { endPoint = e.result.geometry.coordinates; checkAndRoute(); });
+        // Event listeners for geocoders
+        geocoderStart.on('result', (e) => {
+            startPoint = e.result.geometry.coordinates;
+            updateMarkers();
+            checkAndRoute();
+        });
+        
+        geocoderEnd.on('result', (e) => {
+            endPoint = e.result.geometry.coordinates;
+            updateMarkers();
+            checkAndRoute();
+        });
 
-        function checkAndRoute() {
-            if (startPoint && endPoint) {
-                document.getElementById('status').innerText = "⏳ Comparing Routes...";
-                
-                // Add Markers
-                new mapboxgl.Marker({ color: 'green' }).setLngLat(startPoint).addTo(map);
-                new mapboxgl.Marker({ color: 'red' }).setLngLat(endPoint).addTo(map);
+        // Clear previous markers and add new ones
+        function updateMarkers() {
+            // Remove old markers
+            if (startMarker) startMarker.remove();
+            if (endMarker) endMarker.remove();
+            
+            // Add new markers
+            if (startPoint) {
+                startMarker = new mapboxgl.Marker({ color: '#28a745' })
+                    .setLngLat(startPoint)
+                    .addTo(map);
+            }
+            
+            if (endPoint) {
+                endMarker = new mapboxgl.Marker({ color: '#dc3545' })
+                    .setLngLat(endPoint)
+                    .addTo(map);
+            }
+        }
 
-                fetch('http://127.0.0.1:5000/api/get_safe_path', {
+        // ==================== ROUTE CALCULATION ====================
+        
+        async function checkAndRoute() {
+            if (!startPoint || !endPoint) return;
+            
+            // Show loading state
+            document.getElementById('status').innerHTML = '<span class="loading"></span> Calculating safe routes...';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/get_safe_path`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ start_lon: startPoint[0], start_lat: startPoint[1], end_lon: endPoint[0], end_lat: endPoint[1] })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    // 1. Flip [Lat, Lon] to [Lon, Lat]
-                    let safePolyline = data.safe_path.map(p => [p[1], p[0]]);
-                    let riskyPolyline = data.risky_path.map(p => [p[1], p[0]]);
-
-                    // 2. Add Start/End points manually to close the gap
-                    safePolyline.unshift(startPoint);
-                    safePolyline.push(endPoint);
-                    
-                    riskyPolyline.unshift(startPoint);
-                    riskyPolyline.push(endPoint);
-
-                    // 3. Save for animation
-                    safePathCoords = safePolyline;
-
-                    // 4. Draw Routes
-                    drawLayer('risky', riskyPolyline, 'red');
-                    drawLayer('safe', safePolyline, '#00BFFF');
-
-                    // UPDATE ANALYTICS
-                    document.getElementById('analytics').style.display = 'block';
-                    document.getElementById('dist-red').innerText = (data.risky_dist / 1000).toFixed(2) + " km";
-                    document.getElementById('score-red').innerText = data.risky_score;
-                    document.getElementById('dist-blue').innerText = (data.safe_dist / 1000).toFixed(2) + " km";
-                    document.getElementById('score-blue').innerText = data.safe_score;
-                    
-                    let improvement = 0;
-                    if(data.risky_score > 0) {
-                        improvement = ((data.risky_score - data.safe_score) / data.risky_score * 100).toFixed(0);
-                    }
-                    document.getElementById('safety-verdict').innerText = `✅ ${improvement}% Safer Route Found!`;
-
-                    // SHOW GUARDIAN BUTTON
-                    document.getElementById('btn-guardian').style.display = 'block';
-                    document.getElementById('status').innerText = "✅ Analysis Complete";
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        start_lon: startPoint[0], 
+                        start_lat: startPoint[1], 
+                        end_lon: endPoint[0], 
+                        end_lat: endPoint[1] 
+                    })
                 });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // Process route coordinates
+                let safePolyline = data.safe_path.map(p => [p[1], p[0]]);
+                let riskyPolyline = data.risky_path.map(p => [p[1], p[0]]);
+
+                // Add start/end points
+                safePolyline = [startPoint, ...safePolyline, endPoint];
+                riskyPolyline = [startPoint, ...riskyPolyline, endPoint];
+                
+                // Save for animation
+                safePathCoords = safePolyline;
+
+                // Draw routes
+                drawLayer('risky', riskyPolyline, '#dc3545');
+                drawLayer('safe', safePolyline, '#00BFFF');
+
+                // Update analytics
+                updateAnalytics(data);
+                
+                // Fit map to show both routes
+                fitMapToRoute([...riskyPolyline, ...safePolyline]);
+                
+                // Show guardian button
+                document.getElementById('btn-guardian').style.display = 'block';
+                
+                // Update status
+                document.getElementById('status').innerHTML = '✅ Routes calculated successfully!';
+                
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('status').innerHTML = `❌ Error: ${error.message}`;
             }
         }
 
         function drawLayer(id, coords, color) {
+            // Remove existing layer/source
             if (map.getLayer(id)) map.removeLayer(id);
             if (map.getSource(id)) map.removeSource(id);
             
+            // Add new source
             map.addSource(id, { 
                 type: 'geojson', 
                 data: { 
                     type: 'Feature', 
-                    geometry: { type: 'LineString', coordinates: coords } 
+                    geometry: { 
+                        type: 'LineString', 
+                        coordinates: coords 
+                    } 
                 } 
             });
             
+            // Add new layer
             map.addLayer({ 
                 id: id, 
                 type: 'line', 
                 source: id, 
-                layout: { 'line-join': 'round', 'line-cap': 'round' }, 
-                paint: { 'line-color': color, 'line-width': 5 } 
+                layout: { 
+                    'line-join': 'round', 
+                    'line-cap': 'round' 
+                }, 
+                paint: { 
+                    'line-color': color, 
+                    'line-width': 5,
+                    'line-opacity': 0.8
+                } 
             });
         }
 
-        // --- GUARDIAN & SIMULATION LOGIC ---
+        function updateAnalytics(data) {
+            document.getElementById('analytics').style.display = 'block';
+            
+            // Distance (convert to km)
+            document.getElementById('dist-red').innerText = (data.risky_dist / 1000).toFixed(2);
+            document.getElementById('dist-blue').innerText = (data.safe_dist / 1000).toFixed(2);
+            
+            // Risk scores
+            document.getElementById('score-red').innerText = data.risky_score;
+            document.getElementById('score-blue').innerText = data.safe_score;
+            
+            // Safety improvement
+            let improvement = 0;
+            if(data.risky_score > 0) {
+                improvement = ((data.risky_score - data.safe_score) / data.risky_score * 100).toFixed(1);
+            }
+            
+            document.getElementById('safety-verdict').innerHTML = `
+                <i class="fas fa-shield-alt"></i>
+                ${improvement}% Safer Route Found!
+                <span style="display: block; font-size: 11px; margin-top: 5px;">
+                    ${data.safe_dist} m vs ${data.risky_dist} m
+                </span>
+            `;
+        }
 
+        function fitMapToRoute(coordinates) {
+            if (coordinates.length === 0) return;
+            
+            const bounds = new mapboxgl.LngLatBounds();
+            coordinates.forEach(coord => bounds.extend(coord));
+            
+            map.fitBounds(bounds, {
+                padding: 100,
+                duration: 1000
+            });
+        }
+
+        // ==================== GUARDIAN MODE ====================
+        
         function activateGuardian() {
             document.getElementById('btn-guardian').style.display = 'none';
             document.getElementById('sim-controls').style.display = 'block';
             
-            if (!userMarker) {
-                const el = document.createElement('div'); el.className = 'user-marker';
-                userMarker = new mapboxgl.Marker(el).setLngLat(startPoint).addTo(map);
+            if (!userMarker && startPoint) {
+                const el = document.createElement('div');
+                el.className = 'user-marker';
+                userMarker = new mapboxgl.Marker(el)
+                    .setLngLat(startPoint)
+                    .addTo(map);
             }
             
-            alert("🛡️ Guardian Mode Active! Use the yellow/red buttons to test SOS.");
+            // Show notification
+            showNotification('🛡️ Guardian Mode Active', 'success');
         }
 
+        // ==================== SIMULATION CONTROLS ====================
+        
         function startWalking() {
             clearInterval(simulationInterval);
+            if (!userMarker || safePathCoords.length === 0) {
+                alert('Please calculate a route first');
+                return;
+            }
+            
             let i = 0;
             simulationInterval = setInterval(() => {
-                if (i >= safePathCoords.length) { clearInterval(simulationInterval); return; }
+                if (i >= safePathCoords.length) {
+                    clearInterval(simulationInterval);
+                    showNotification('✅ Journey completed!', 'success');
+                    return;
+                }
+                
                 userMarker.setLngLat(safePathCoords[i]);
-                map.panTo(safePathCoords[i]);
+                
+                // Smooth pan
+                map.panTo(safePathCoords[i], {
+                    duration: 200,
+                    easing: (t) => t
+                });
+                
                 i++;
-            }, 300); // Speed of walking
+            }, 300);
         }
 
         function simulateDeviation() {
             clearInterval(simulationInterval);
+            
+            if (!userMarker) {
+                alert('Please activate Guardian Mode first');
+                return;
+            }
+            
             let currentPos = userMarker.getLngLat();
-            let badPos = { lng: currentPos.lng + 0.005, lat: currentPos.lat + 0.005 }; // Jump Away
+            let badPos = { 
+                lng: currentPos.lng + 0.008, 
+                lat: currentPos.lat + 0.008 
+            };
+            
             userMarker.setLngLat(badPos);
             map.panTo(badPos);
-
-            setTimeout(() => { triggerSOS("Route Deviation Detected!"); }, 1000);
+            
+            setTimeout(() => { 
+                triggerSOS("⚠️ Route Deviation Detected - User went off path!"); 
+            }, 1000);
         }
 
         function simulateStop() {
             clearInterval(simulationInterval);
-            setTimeout(() => { triggerSOS("Unusual Stoppage Detected (30s timeout)"); }, 1500); 
+            
+            if (!userMarker) {
+                alert('Please activate Guardian Mode first');
+                return;
+            }
+            
+            showNotification('⏸️ Stop detected - monitoring...', 'warning');
+            
+            setTimeout(() => { 
+                triggerSOS("⏹️ Unusual Stoppage Detected (No movement for 30 seconds)"); 
+            }, 1500);
         }
 
+        // ==================== SOS FUNCTIONS ====================
+        
         function triggerSOS(reason) {
-            // 1. Show Red Alert Screen
+            // Show SOS overlay
             document.getElementById('sos-overlay').style.display = 'flex';
             document.getElementById('sos-reason').innerText = reason;
             
-            // 2. Open WhatsApp with CORRECT Google Maps Link
+            // Play alert sound (optional)
+            // const audio = new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3');
+            // audio.play();
+            
+            // Share location via WhatsApp
             setTimeout(() => {
-                const lat = userMarker.getLngLat().lat;
-                const lng = userMarker.getLngLat().lng;
-                
-                // CORRECT LINK FORMAT
-                const googleMapsLink = `https://www.google.com/maps?q=${lat},${lng}`;
-                
-                const waText = `🚨 SOS! I need help. Reason: ${reason}. My Live Location: ${googleMapsLink}`;
-                
-                // Open WhatsApp
-                window.open(`https://wa.me/?text=${encodeURIComponent(waText)}`, '_blank');
+                if (userMarker) {
+                    const lat = userMarker.getLngLat().lat;
+                    const lng = userMarker.getLngLat().lng;
+                    
+                    const googleMapsLink = `https://www.google.com/maps?q=${lat},${lng}`;
+                    const waText = `🚨 EMERGENCY SOS! I need immediate assistance.\n\nReason: ${reason}\n\n📍 Live Location: ${googleMapsLink}\n\n🕐 Time: ${new Date().toLocaleTimeString()}`;
+                    
+                    window.open(`https://wa.me/?text=${encodeURIComponent(waText)}`, '_blank');
+                }
             }, 2000);
         }
 
         function cancelSOS() {
             document.getElementById('sos-overlay').style.display = 'none';
+            showNotification('✅ SOS cancelled', 'success');
         }
 
-        function resetMap() { location.reload(); }
+        // ==================== UTILITY FUNCTIONS ====================
+        
+        function showNotification(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.innerHTML = message;
+            status.style.background = type === 'success' ? '#d4edda' : 
+                                    type === 'warning' ? '#fff3cd' : '#f8f9fa';
+            status.style.color = type === 'success' ? '#155724' :
+                                type === 'warning' ? '#856404' : '#6c757d';
+        }
+
+        function resetMap() {
+            location.reload();
+        }
+
+        // ==================== HEALTH CHECK ====================
+        
+        // Check if API is reachable
+        async function checkAPIHealth() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/health`);
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('✅ API Connected:', data);
+                    showNotification('✅ Connected to Safe Route API', 'success');
+                }
+            } catch (error) {
+                console.error('❌ API Connection Error:', error);
+                showNotification('⚠️ Using local mode - API not reachable', 'warning');
+            }
+        }
+
+        // Run health check on load
+        window.addEventListener('load', checkAPIHealth);
+
+        // Clean up intervals on page unload
+        window.addEventListener('beforeunload', () => {
+            if (simulationInterval) {
+                clearInterval(simulationInterval);
+            }
+        });
     </script>
 </body>
 </html>

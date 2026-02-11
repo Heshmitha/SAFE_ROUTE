@@ -3,3 +3,11 @@ numpy
 scikit-learn
 flask
 flask-cors
+gunicorn
+networkx
+osmnx
+gdown
+python-dotenv
+shapely
+geopandas
+rtree
